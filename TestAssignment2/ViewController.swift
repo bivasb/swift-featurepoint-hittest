@@ -14,6 +14,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
+    // Create a new scene
+    let scene = SCNScene()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -23,11 +26,44 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
         
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
         // Set the scene to the view
         sceneView.scene = scene
+        
+        addTapGesture()
+        addBox()
+    }
+    
+    func addBox(x: Float = 0, y: Float = 0, z: Float = -0.2){
+        let box = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0)
+        
+        let boxNode = SCNNode()
+        boxNode.geometry = box
+        boxNode.position = SCNVector3(x,y,z)
+        
+        scene.rootNode.addChildNode(boxNode)
+    }
+    
+    func addTapGesture(){
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(ViewController.didTap(withGestureRecognizer:)))
+        sceneView.addGestureRecognizer(tapGestureRecognizer)
+    }
+    
+    
+    
+    @objc func didTap(withGestureRecognizer recognizer: UIGestureRecognizer) {
+        let tapLocation = recognizer.location(in: sceneView)
+        let hitTestResults = sceneView.hitTest(tapLocation)
+        guard let node = hitTestResults.first?.node else {
+            
+            let hitTestResultsWithFP = sceneView.hitTest(tapLocation, types: .featurePoint)
+            if let featurePoint = hitTestResultsWithFP.first {
+                let worldPosition = featurePoint.worldTransform.position
+                addBox(x: worldPosition.x, y: worldPosition.y, z: worldPosition.z)
+            }
+            return
+            
+        }
+        node.removeFromParentNode()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -71,5 +107,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
+    }
+}
+
+
+extension simd_float4x4{
+    var position: float3 {
+        let position = self.columns.3
+        return float3(position.x, position.y, position.z)
     }
 }
